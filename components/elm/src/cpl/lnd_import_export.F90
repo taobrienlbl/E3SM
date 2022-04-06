@@ -474,6 +474,8 @@ contains
                    numstr = subnum_str(3:6)
                endif
                ierr = nf90_open(trim(metdata_bypass) // '/sub' // numstr(2:4) // '/' // trim(metdata_fname), NF90_NOWRITE, met_ncids(v))
+if (v==1) &
+print *, iam, g, ztoget, gtoget, ldomain%lonc(g), ldomain%latc(g), trim(metdata_bypass) // '/sub' // numstr(2:4) // '/' // trim(metdata_fname)
             else
                ierr = nf90_open(trim(metdata_bypass) // '/' // trim(metdata_fname), NF90_NOWRITE, met_ncids(v))
             endif
