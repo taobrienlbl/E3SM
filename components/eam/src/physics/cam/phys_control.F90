@@ -110,6 +110,7 @@ real(r8)          :: prc_coef1            = huge(1.0_r8)
 real(r8)          :: prc_exp              = huge(1.0_r8)
 real(r8)          :: prc_exp1             = huge(1.0_r8)
 real(r8)          :: cld_sed              = huge(1.0_r8)
+real(r8)          :: cldliq_threshold     = 5.0e-5_r8  ! Cloud liquid water threshold for base/top detection (0.05 g/kg)
 logical           :: mg_prc_coeff_fix     = .false.
 logical           :: rrtmg_temp_fix       = .false.
 logical           :: do_tms
@@ -209,7 +210,7 @@ subroutine phys_ctl_readnl(nlfile)
       convproc_do_gas, convproc_method_activate, liqcf_fix, regen_fix, demott_ice_nuc, pergro_mods, pergro_test_active, &
       mam_amicphys_optaa, n_so4_monolayers_pcage,micro_mg_accre_enhan_fac, &
       l_tracer_aero, l_vdiff, l_rayleigh, l_gw_drag, l_ac_energy_chk, &
-      l_bc_energy_fix, l_dry_adj, l_st_mac, l_st_mic, l_rad, prc_coef1,prc_exp,prc_exp1,cld_sed,mg_prc_coeff_fix, &
+      l_bc_energy_fix, l_dry_adj, l_st_mac, l_st_mic, l_rad, prc_coef1,prc_exp,prc_exp1,cld_sed,cldliq_threshold,mg_prc_coeff_fix, &
       rrtmg_temp_fix
    !-----------------------------------------------------------------------------
 
@@ -305,9 +306,10 @@ subroutine phys_ctl_readnl(nlfile)
    call mpibcast(prc_coef1,                       1 , mpir8,   0, mpicom)
    call mpibcast(prc_exp,                         1 , mpir8,   0, mpicom)
    call mpibcast(prc_exp1,                        1 , mpir8,   0, mpicom)
+   call mpibcast(cld_sed,                         1 , mpir8,   0, mpicom)
+   call mpibcast(cldliq_threshold,                1 , mpir8,   0, mpicom)
    call mpibcast(mg_prc_coeff_fix,                1 , mpilog,  0, mpicom)
    call mpibcast(rrtmg_temp_fix,                  1 , mpilog,  0, mpicom)
-   call mpibcast(cld_sed,                         1 , mpir8,   0, mpicom)
 #endif
 
    call cam_ctrl_set_physics_type(cam_physpkg)
@@ -473,7 +475,7 @@ subroutine phys_getopts(deep_scheme_out, shallow_scheme_out, eddy_scheme_out, &
                         micro_mg_accre_enhan_fac_out, liqcf_fix_out, regen_fix_out,demott_ice_nuc_out, pergro_mods_out, pergro_test_active_out &
                        ,l_tracer_aero_out, l_vdiff_out, l_rayleigh_out, l_gw_drag_out, l_ac_energy_chk_out  &
                        ,l_bc_energy_fix_out, l_dry_adj_out, l_st_mac_out, l_st_mic_out, l_rad_out  &
-                       ,prc_coef1_out,prc_exp_out,prc_exp1_out, cld_sed_out,mg_prc_coeff_fix_out,rrtmg_temp_fix_out)
+                       ,prc_coef1_out,prc_exp_out,prc_exp1_out, cld_sed_out,cldliq_threshold_out,mg_prc_coeff_fix_out,rrtmg_temp_fix_out)
 
 !-----------------------------------------------------------------------
 ! Purpose: Return runtime settings
@@ -558,6 +560,7 @@ subroutine phys_getopts(deep_scheme_out, shallow_scheme_out, eddy_scheme_out, &
    real(r8),          intent(out), optional :: prc_exp_out
    real(r8),          intent(out), optional :: prc_exp1_out
    real(r8),          intent(out), optional :: cld_sed_out
+   real(r8),          intent(out), optional :: cldliq_threshold_out
 
    if ( present(deep_scheme_out         ) ) deep_scheme_out          = deep_scheme
    if ( present(shallow_scheme_out      ) ) shallow_scheme_out       = shallow_scheme
@@ -631,8 +634,9 @@ subroutine phys_getopts(deep_scheme_out, shallow_scheme_out, eddy_scheme_out, &
    if ( present(cld_macmic_num_steps_out) ) cld_macmic_num_steps_out = cld_macmic_num_steps
    if ( present(prc_coef1_out           ) ) prc_coef1_out            = prc_coef1
    if ( present(prc_exp_out             ) ) prc_exp_out              = prc_exp
-   if ( present(prc_exp1_out            ) ) prc_exp1_out             = prc_exp1 
+   if ( present(prc_exp1_out            ) ) prc_exp1_out             = prc_exp1
    if ( present(cld_sed_out             ) ) cld_sed_out              = cld_sed
+   if ( present(cldliq_threshold_out    ) ) cldliq_threshold_out     = cldliq_threshold
    if ( present(mg_prc_coeff_fix_out    ) ) mg_prc_coeff_fix_out     = mg_prc_coeff_fix
    if ( present(rrtmg_temp_fix_out      ) ) rrtmg_temp_fix_out       = rrtmg_temp_fix
 

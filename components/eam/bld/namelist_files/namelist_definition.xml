@@ -2346,8 +2346,15 @@ Default: -1.79_r8
 <entry id="cld_sed" type="real" category="microphysics"
 group="phys_ctl_nl" valid_values="" >
 scale factor for cloud sedimentation velocity
-Default: 1.0D0
+default: 1.0D0
 </entry>
+
+<entry id="cldliq_threshold" type="real" category="microphysics"
+group="phys_ctl_nl" valid_values="" >
+threshold for defining liquid cloud base and top (kg/kg)
+default: 5.0e-5
+</entry>
+
 
 <entry id="mg_prc_coeff_fix" type="logical" category="microphysics"
 group="phys_ctl_nl" valid_values="" >

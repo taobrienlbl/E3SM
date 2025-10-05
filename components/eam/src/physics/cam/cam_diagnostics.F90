@@ -64,6 +64,8 @@ type(dqcond_t), allocatable :: dqcond(:)
 character(len=8) :: diag_cnst_conv_tend = 'q_only' ! output constituent tendencies due to convection
                                                    ! 'none', 'q_only' or 'all'
 
+real(r8)         :: cldliq_threshold               ! Cloud liquid water threshold for base/top detection (kg/kg)
+
 logical          :: history_amwg                   ! output the variables used by the AMWG diag package
 logical          :: history_verbose                ! produce verbose history output
 logical          :: history_vdiag                  ! output the variables used by the AMWG variability diag package
@@ -169,7 +171,8 @@ subroutine diag_init()
    integer :: ierr
 
    call phys_getopts(prog_modal_aero_out = prog_modal_aero, &
-                     linearize_pbl_winds_out = linearize_pbl_winds)
+                     linearize_pbl_winds_out = linearize_pbl_winds, &
+                     cldliq_threshold_out = cldliq_threshold)
 
    ! outfld calls in diag_phys_writeout
 
@@ -281,6 +284,22 @@ subroutine diag_init()
    call addfld ('OMEGA200',horiz_only,    'A','Pa/s','Vertical velocity at 200 mbar pressure surface')
    call addfld ('OMEGA100',horiz_only,    'A','Pa/s','Vertical velocity at 100 mbar pressure surface')
    call addfld ('OMEGABOT',horiz_only,    'A','Pa/s','Lowest model level vertical velocity')
+   call addfld ('OMEGACTOP',horiz_only,    'A','Pa/s','Vertical velocity at cloud top height', fill_value = 1e30_r8, flag_xyfill=.true.)
+   
+   ! Variables interpolated to cloud top height
+   call addfld ('THCTOP',horiz_only,    'A','K','Potential temperature at cloud top height', fill_value = 1e30_r8, flag_xyfill=.true.)
+   call addfld ('QCTOP',horiz_only,     'A','kg/kg','Specific humidity at cloud top height', fill_value = 1e30_r8, flag_xyfill=.true.)
+   call addfld ('WSPEEDCTOP',horiz_only,'A','m/s','Wind speed at cloud top height', fill_value = 1e30_r8, flag_xyfill=.true.)
+   call addfld ('UCTOP',horiz_only,     'A','m/s','Zonal wind at cloud top height', fill_value = 1e30_r8, flag_xyfill=.true.)
+   call addfld ('VCTOP',horiz_only,     'A','m/s','Meridional wind at cloud top height', fill_value = 1e30_r8, flag_xyfill=.true.)
+   
+   ! Variables showing jumps across cloud top height
+   call addfld ('THJUMPCTOP',horiz_only, 'A','K','Potential temperature jump across cloud top height', fill_value = 1e30_r8, flag_xyfill=.true.)
+   call addfld ('QJUMPCTOP',horiz_only,  'A','kg/kg','Specific humidity jump across cloud top height', fill_value = 1e30_r8, flag_xyfill=.true.)
+   call addfld ('WSPEEDJUMPCTOP',horiz_only,'A','m/s','Wind speed jump across cloud top height', fill_value = 1e30_r8, flag_xyfill=.true.)
+
+   ! Cloud top height
+   call addfld ('CTOPLIQ',horiz_only,    'A','m','Cloud top height AGL (liquid clouds)', fill_value = 1e30_r8, flag_xyfill=.true.)
 
    call addfld ('RH1000',horiz_only,    'A','%','Relative humidity at 1000 mbar pressure surface')
    call addfld ('RH975',horiz_only,    'A','%','Relative humidity at 975 mbar pressure surface')
@@ -304,6 +323,13 @@ subroutine diag_init()
    call addfld ('TTQ',horiz_only,   'A', 'kg/m/s','Total (vertically integrated) vapor transport')
    call addfld ('TUQ',horiz_only,    'A','kg/m/s','Total (vertically integrated) zonal water flux')
    call addfld ('TVQ',horiz_only,    'A','kg/m/s','Total (vertically integrated) meridional water flux')
+   call addfld ('TUCBOT',horiz_only,    'A','kg/m/s','Total (lowest model level) zonal liquid cloud water flux')
+   call addfld ('TVCBOT',horiz_only,    'A','kg/m/s','Total (lowest model level) meridional liquid cloud water flux')
+   call addfld ('TTCBOT',horiz_only,    'A','kg/m/s','Total (lowest model level) liquid cloud water flux')
+   call addfld ('CBASELIQ',horiz_only,    'A','m','Cloud base height AGL (liquid clouds)', fill_value = 1e30_r8, flag_xyfill=.true.)
+   call addfld ('CBASE400',horiz_only,    'A','fraction','Cloud base height (liquid clouds) lower than 400 m')
+   call addfld ('CBASE1000',horiz_only,   'A','fraction','Cloud base height (liquid clouds) lower than 1000 m')
+   call addfld ('CBASE2000',horiz_only,   'A','fraction','Cloud base height (liquid clouds) lower than 2000 m')
    call addfld ('TUH',horiz_only,    'A','W/m',   'Total (vertically integrated) zonal MSE flux')
    call addfld ('TVH',horiz_only,    'A','W/m',   'Total (vertically integrated) meridional MSE flux')
    call addfld ('DTENDTH', horiz_only, 'A', 'W/m2',   'Dynamic Tendency of Total (vertically integrated) moist static energy')
@@ -490,6 +516,13 @@ subroutine diag_init()
       ! For Tier 1b global water cycle diagostics
       call add_default ('TUQ      ', 1, ' ')
       call add_default ('TVQ      ', 1, ' ')
+      call add_default ('TUCBOT   ', 1, ' ')
+      call add_default ('TVCBOT   ', 1, ' ')
+      call add_default ('TTCBOT   ', 1, ' ')
+      call add_default ('CBASELIQ ', 1, ' ')
+      call add_default ('CBASE400', 1, ' ')
+      call add_default ('CBASE1000', 1, ' ')
+      call add_default ('CBASE2000', 1, ' ')
       call add_default ('TUH      ', 1, ' ')
       call add_default ('TVH      ', 1, ' ')
       call add_default ('DTENDTQ', 1, ' ')
@@ -687,6 +720,16 @@ subroutine diag_init()
     endif
 
     call add_default ('OMEGA500', 1, ' ')
+    call add_default ('OMEGACTOP', 1, ' ')
+    call add_default ('THCTOP', 1, ' ')
+    call add_default ('QCTOP', 1, ' ')
+    call add_default ('WSPEEDCTOP', 1, ' ')
+    call add_default ('UCTOP', 1, ' ')
+    call add_default ('VCTOP', 1, ' ')
+    call add_default ('CTOPLIQ', 1, ' ')
+    call add_default ('THJUMPCTOP', 1, ' ')
+    call add_default ('QJUMPCTOP', 1, ' ')
+    call add_default ('WSPEEDJUMPCTOP', 1, ' ')
     call add_default ('TH7001000', 1, ' ')
 
     if (history_vdiag) then
@@ -975,13 +1018,14 @@ end subroutine diag_conv_tend_ini
 ! Arguments
 !
    type(physics_state), intent(inout) :: state
-   real(r8), optional , intent(out)   :: psl(pcols) 
+   real(r8), optional , intent(out)   :: psl(pcols)
 !
 !---------------------------Local workspace-----------------------------
 !
     real(r8) ftem(pcols,pver) ! temporary workspace
     real(r8) ftem1(pcols,pver) ! another temporary workspace
     real(r8) ftem2(pcols,pver) ! another temporary workspace
+    real(r8) ftem3(pcols,pver) ! another temporary workspace
     real(r8) ftem4(pcols,pver) ! another temporary workspace
     real(r8) ftem5(pcols,pver) ! another temporary workspace
     real(r8) psl_tmp(pcols)   ! Sea Level Pressure
@@ -997,8 +1041,14 @@ end subroutine diag_conv_tend_ini
     real(r8) esi(pcols,pver)   ! 
     real(r8) dlon(pcols)      ! width of grid cell (meters)
     integer  plon             ! number of longitudes
+    integer :: ixcldliq ! constituent indices for cloud liquid
+    integer :: ixq      ! constituent index for water vapor
 
     integer i, k, m, lchnk, ncol, nstep
+    integer :: cloud_base_k, cloud_top_k  ! indices for cloud base and top levels
+    real(r8), pointer :: pblh(:) ! boundary layer height
+    real(r8) :: ctop_height(pcols)  ! cloud top height for interpolation
+    real(r8) :: ctop_output(pcols)  ! temporary array for cloud top diagnostic output
 !
 !-----------------------------------------------------------------------
 !
@@ -1333,6 +1383,233 @@ end subroutine diag_conv_tend_ini
     call outfld ('TUQ     ',ftem4, pcols   ,lchnk     )
     call outfld ('TVQ     ',ftem5, pcols   ,lchnk     )
     call outfld ('TTQ     ',ftem, pcols   ,lchnk     )
+
+!
+!  Mass of cloud liquid water flux in bottom layer (only when needed)
+!
+   if (hist_fld_active('TUCBOT') .or. hist_fld_active('TVCBOT') .or. hist_fld_active('TTCBOT')) then
+      ! get the index for cloud liquid
+      call cnst_get_ind('CLDLIQ', ixcldliq)
+      ! calculate the zonal flux
+      ftem4(:ncol,1) = state%u(:ncol,pver)*state%q(:ncol,pver,ixcldliq)*state%pdel(:ncol,pver)*rga
+      ! calculate the meridional flux
+      ftem5(:ncol,1) = state%v(:ncol,pver)*state%q(:ncol,pver,ixcldliq)*state%pdel(:ncol,pver)*rga
+      ! calculate the total flux
+      ftem(:ncol,1) = sqrt( ftem4(:ncol,1)**2 + ftem5(:ncol,1)**2)
+      ! write out the fluxes
+      call outfld ('TUCBOT  ',ftem4, pcols   ,lchnk     )
+      call outfld ('TVCBOT  ',ftem5, pcols   ,lchnk     )
+      call outfld ('TTCBOT  ',ftem, pcols   ,lchnk     )
+   end if
+
+!
+!  Cloud base detection: Find lowest height at which cloud liquid water 
+!  mixing ratio exceeds 0.05 g/kg and calculate low cloud indicators (only when needed)
+!
+   if (hist_fld_active('CBASELIQ') .or. hist_fld_active('CBASE400') .or. &
+       hist_fld_active('CBASE1000') .or. hist_fld_active('CBASE2000')) then
+       
+      ! get the index for cloud liquid (if not already obtained)
+      if (.not. (hist_fld_active('TUCBOT') .or. hist_fld_active('TVCBOT') .or. hist_fld_active('TTCBOT'))) then
+         call cnst_get_ind('CLDLIQ', ixcldliq)
+      end if
+      
+      ! Initialize cloud base height to missing value
+      ftem(:ncol,1) = 1e30_r8
+      ftem1(:ncol,1) = 0  ! cloud base < 400m indicator
+      ftem2(:ncol,1) = 0  ! cloud base < 1000m indicator  
+      ftem4(:ncol,1) = 0  ! cloud base < 2000m indicator
+      
+      do i = 1, ncol
+         ! Search from surface up to find first cloud occurrence
+         do k = pver, 1, -1
+            ! Check if cloud liquid water exceeds threshold
+            if ( state%q(i,k,ixcldliq) > cldliq_threshold ) then
+               ! Store the height (AGL) at which cloud is first detected from surface
+               ftem(i,1) = state%zm(i,k)
+
+               ! Set height threshold indicators based on cloud base height
+               if ( ftem(i,1) <= 400._r8 ) then
+                 ftem1(i,1) = 1
+                 ftem2(i,1) = 1
+                 ftem4(i,1) = 1
+                 ! skip the rest of the loop so we just retain the lowest height
+                 cycle
+               end if
+               if ( ftem(i,1) <= 1000._r8 ) then
+                 ftem2(i,1) = 1
+                 ftem4(i,1) = 1    
+                 ! skip the rest of the loop so we just retain the lowest height
+                 cycle
+               end if
+               if ( ftem(i,1) <= 2000._r8 ) then
+                 ftem4(i,1) = 1
+                 ! skip the rest of the loop so we just retain the lowest height
+                 cycle
+               end if
+            end if
+         end do
+      end do
+      call outfld ('CBASELIQ',ftem,  pcols   ,lchnk     )
+      call outfld ('CBASE400',  ftem1, pcols   ,lchnk     )
+      call outfld ('CBASE1000', ftem2, pcols   ,lchnk     )
+      call outfld ('CBASE2000', ftem4, pcols   ,lchnk     )
+   end if
+
+!
+!  Cloud top detection: Find highest contiguous height at which cloud liquid water
+!  mixing ratio exceeds threshold (0.05 g/kg), starting from cloud base detection (only when needed)
+!
+! ALGORITHM:
+! 1. Search upward from surface (k=pver to k=1) to find cloud base (first level > threshold)
+! 2. From cloud base, continue searching upward to find cloud top (last contiguous level > threshold)
+! 3. Store cloud top height (in meters AGL) for interpolation
+! 4. Use fill value (1e30_r8) where no cloud base is detected
+!
+! NOTE: This differs from CBASELIQ which only finds cloud base. Here we find the
+! topmost level of the lowest contiguous cloud layer exceeding the threshold.
+!
+   if (hist_fld_active('CTOPLIQ') .or. hist_fld_active('OMEGACTOP') .or. &
+       hist_fld_active('THCTOP') .or. hist_fld_active('QCTOP') .or. &
+       hist_fld_active('WSPEEDCTOP') .or. hist_fld_active('UCTOP') .or. &
+       hist_fld_active('VCTOP') .or. hist_fld_active('THJUMPCTOP') .or. &
+       hist_fld_active('QJUMPCTOP') .or. hist_fld_active('WSPEEDJUMPCTOP')) then
+
+      ! get the index for cloud liquid (if not already obtained)
+      if (.not. (hist_fld_active('TUCBOT') .or. hist_fld_active('TVCBOT') .or. hist_fld_active('TTCBOT') .or. &
+                 hist_fld_active('CBASELIQ') .or. hist_fld_active('CBASE400') .or. &
+                 hist_fld_active('CBASE1000') .or. hist_fld_active('CBASE2000'))) then
+         call cnst_get_ind('CLDLIQ', ixcldliq)
+      end if
+
+      ! Initialize cloud top height to missing value
+      ctop_height(:) = 1e30_r8
+      ! Initialize output buffer to fill value for all indices to avoid uninitialized memory
+      ctop_output(:) = 1e30_r8
+
+      do i = 1, ncol
+         ! First find cloud base (search from surface up)
+         cloud_base_k = -1
+         do k = pver, 1, -1
+            ! Check if cloud liquid water exceeds threshold
+            if ( state%q(i,k,ixcldliq) > cldliq_threshold ) then
+               cloud_base_k = k
+               exit  ! Found cloud base, exit this loop
+            end if
+         end do
+
+         ! If cloud base found, search upward for cloud top
+         if (cloud_base_k > 0) then
+            cloud_top_k = cloud_base_k
+            ! Search upward from cloud base to find last contiguous level above threshold
+            do k = cloud_base_k, 1, -1
+               if ( state%q(i,k,ixcldliq) > cldliq_threshold ) then
+                  cloud_top_k = k  ! Update cloud top to current level
+               else
+                  exit  ! No longer above threshold, stop searching
+               end if
+            end do
+            ! Store the height (AGL) of the cloud top
+            ctop_height(i) = state%zm(i,cloud_top_k)
+         end if
+      end do
+      ! Output cloud top height for diagnostics
+      ctop_output(:ncol) = ctop_height(:ncol)
+      call outfld ('CTOPLIQ',ctop_output,  pcols   ,lchnk     )
+
+!
+! Cloud top diagnostics 
+!
+! ctop_height(:)  - stores cloud top heights (in meters AGL) with 1e30_r8 fill values
+! ctop_output(:)  - dedicated output buffer for cloud top diagnostic results
+! ftem3(:,:)      - used here for potential temperature calculation (K)
+! ftem4(:,:)      - used here for wind speed calculation (m/s)
+!
+      ! Interpolate omega (vertical velocity) to cloud top height
+      if (hist_fld_active('OMEGACTOP')) then
+         call interp_to_height(ncol, pcols, pver, state%zm, state%omega, ctop_height, ctop_output, 1e30_r8)
+         call outfld('OMEGACTOP', ctop_output, pcols, lchnk)
+      end if
+
+      ! Calculate potential temperature on all levels (only if any cloud top theta diagnostics are active)
+      ! ftem3(:,:) = potential temperature (K) = T * (P0/P)^kappa, where P0=100000 Pa, kappa=R/Cp
+      if (hist_fld_active('THCTOP') .or. hist_fld_active('THJUMPCTOP')) then
+         do k = 1, pver
+            ftem3(:ncol,k) = state%t(:ncol,k) * (100000._r8 / state%pmid(:ncol,k))**cappa
+         end do
+      end if
+
+      ! Calculate wind speed magnitude on all levels (only if wind speed cloud top diagnostics are active)
+      ! ftem4(:,:) = wind speed magnitude (m/s) = sqrt(u^2 + v^2)
+      if (hist_fld_active('WSPEEDCTOP') .or. hist_fld_active('WSPEEDJUMPCTOP')) then
+         do k = 1, pver
+            ftem4(:ncol,k) = sqrt(state%u(:ncol,k)**2 + state%v(:ncol,k)**2)
+         end do
+      end if
+
+      ! Variables interpolated to cloud top height
+      ! These use interp_to_height() to linearly interpolate field values to the exact cloud top height
+      if (hist_fld_active('THCTOP')) then
+         call interp_to_height(ncol, pcols, pver, state%zm, ftem3, ctop_height, ctop_output, 1e30_r8)
+         call outfld('THCTOP', ctop_output, pcols, lchnk)
+      end if
+
+      if (hist_fld_active('QCTOP')) then
+         ! Get constituent index for water vapor (specific humidity) if not already obtained
+         if (.not. (hist_fld_active('QJUMPCTOP'))) then
+            call cnst_get_ind('Q', ixq)
+         end if
+         call interp_to_height(ncol, pcols, pver, state%zm, state%q(:,:,ixq), ctop_height, ctop_output, 1e30_r8)
+         call outfld('QCTOP', ctop_output, pcols, lchnk)
+      end if
+
+      if (hist_fld_active('WSPEEDCTOP')) then
+         call interp_to_height(ncol, pcols, pver, state%zm, ftem4, ctop_height, ctop_output, 1e30_r8)
+         call outfld('WSPEEDCTOP', ctop_output, pcols, lchnk)
+      end if
+
+      if (hist_fld_active('UCTOP')) then
+         call interp_to_height(ncol, pcols, pver, state%zm, state%u, ctop_height, ctop_output, 1e30_r8)
+         call outfld('UCTOP', ctop_output, pcols, lchnk)
+      end if
+
+      if (hist_fld_active('VCTOP')) then
+         call interp_to_height(ncol, pcols, pver, state%zm, state%v, ctop_height, ctop_output, 1e30_r8)
+         call outfld('VCTOP', ctop_output, pcols, lchnk)
+      end if
+
+      ! Variables showing jumps across cloud top height
+      ! These use diff_across_height() to calculate field_above_ctop - field_below_ctop
+      if (hist_fld_active('THJUMPCTOP')) then
+         call diff_across_height(ncol, pcols, pver, state%zm, ftem3, ctop_height, ctop_output, 1e30_r8)
+         call outfld('THJUMPCTOP', ctop_output, pcols, lchnk)
+      end if
+
+      if (hist_fld_active('QJUMPCTOP')) then
+         ! Get constituent index for water vapor (specific humidity)
+         call cnst_get_ind('Q', ixq)
+         call diff_across_height(ncol, pcols, pver, state%zm, state%q(:,:,ixq), ctop_height, ctop_output, 1e30_r8)
+         ! Validate output range to prevent NetCDF conversion errors
+         do i = 1, ncol
+            if (ctop_output(i) /= 1e30_r8) then
+               ! Clamp humidity jump to reasonable range (-1 to 1 kg/kg)
+               if (ctop_output(i) > 1.0_r8) ctop_output(i) = 1.0_r8
+               if (ctop_output(i) < -1.0_r8) ctop_output(i) = -1.0_r8
+               ! Check for any remaining problematic values
+               if (isnan(ctop_output(i)) .or. abs(ctop_output(i)) > 10.0_r8) then
+                  ctop_output(i) = 1e30_r8
+               end if
+            end if
+         end do
+         call outfld('QJUMPCTOP', ctop_output, pcols, lchnk)
+      end if
+
+      if (hist_fld_active('WSPEEDJUMPCTOP')) then
+         call diff_across_height(ncol, pcols, pver, state%zm, ftem4, ctop_height, ctop_output, 1e30_r8)
+         call outfld('WSPEEDJUMPCTOP', ctop_output, pcols, lchnk)
+      end if
+
+   end if
 
 !
 ! Mass of vertically integrated MSE flux
@@ -1933,6 +2210,7 @@ end subroutine diag_conv_tend_ini
 
   endif
 
+
     return
   end subroutine diag_phys_writeout
 !===============================================================================
@@ -2300,6 +2578,7 @@ end subroutine diag_export
       call pbuf_get_field(pbuf, pblh_idx,  pblh)
       call outfld('PBLH&IC    ', pblh,  pcols, lchnk)
 
+
       call pbuf_get_field(pbuf, tpert_idx, tpert)
       call outfld('TPERT&IC   ', tpert, pcols, lchnk)
 
@@ -2462,5 +2741,184 @@ end subroutine diag_phys_tend_writeout
    if ( cnst_cam_outfld(ixcldice) ) call outfld (bpcnst(ixcldice), state%q(1,1,ixcldice), pcols, lchnk)
 
    end subroutine diag_state_b4_phys_write
+
+!#######################################################################
+
+   subroutine interp_to_height(ncol, ncold, nlevs, zmid, field_in, height_interp, field_out, fill_value)
+!
+!---------------------------------------------------------------
+!
+! Purpose:  Interpolate a 3D field to specified heights using linear interpolation
+!
+! Algorithm: For each column, the routine:
+!            1. Finds the model levels that bracket the target height
+!            2. Performs linear interpolation between these levels
+!            3. Uses extrapolation for heights outside the model domain
+!            4. Returns fill_value for invalid target heights (≤ 0)
+!            5. Checks for NaN values in input and output data
+!
+! Notes:     - Heights are assumed to be in meters above ground level
+!            - Model levels are searched from bottom to top (pver to 1)
+!            - Extrapolation uses nearest neighbor for out-of-bounds heights
+!            - NaN values in input data are replaced with fill_value
+!
+!---------------------------------------------------------------
+!
+! Arguments
+!
+   integer,  intent(in)  :: ncol                      ! number of columns
+   integer,  intent(in)  :: ncold                     ! declared column dimension
+   integer,  intent(in)  :: nlevs                     ! number of vertical levels
+   real(r8), intent(in)  :: zmid(ncold,nlevs)         ! height at model levels (m)
+   real(r8), intent(in)  :: field_in(ncold,nlevs)     ! input field on model levels
+   real(r8), intent(in)  :: height_interp(ncold)      ! target heights for interpolation (m)
+   real(r8), intent(out) :: field_out(ncold)          ! interpolated field at target heights
+   real(r8), intent(in)  :: fill_value                ! value to use when interpolation fails
+!
+!---------------------------Local workspace-----------------------------
+!
+   integer :: i, k
+   logical :: has_valid_data
+!
+!-----------------------------------------------------------------------
+!
+   ! Initialize output array to fill value
+   field_out(:) = fill_value
+   
+   ! Interpolate for each column
+   do i = 1, ncol
+      if (height_interp(i) > 0._r8) then
+         has_valid_data = .false.
+         ! Find the levels bracketing the target height
+         do k = nlevs, 1, -1
+            if (zmid(i,k) >= height_interp(i)) then
+               if (k == nlevs) then
+                  ! Target height is below the lowest model level
+                  ! Check for NaN in input data
+                  if (.not. isnan(field_in(i,nlevs))) then
+                     field_out(i) = field_in(i,nlevs)
+                     has_valid_data = .true.
+                  end if
+               else if (k == 1) then
+                  ! Target height is above the highest model level
+                  ! Check for NaN in input data
+                  if (.not. isnan(field_in(i,1))) then
+                     field_out(i) = field_in(i,1)
+                     has_valid_data = .true.
+                  end if
+               else
+                  ! Linear interpolation between levels k and k+1
+                  ! Check for NaN in both input values
+                  if (.not. isnan(field_in(i,k)) .and. .not. isnan(field_in(i,k+1))) then
+                     if (zmid(i,k) /= zmid(i,k+1)) then
+                        field_out(i) = field_in(i,k+1) + &
+                             (field_in(i,k) - field_in(i,k+1)) * &
+                             (height_interp(i) - zmid(i,k+1)) / &
+                             (zmid(i,k) - zmid(i,k+1))
+                        has_valid_data = .true.
+                     else
+                        field_out(i) = field_in(i,k)
+                        has_valid_data = .true.
+                     end if
+                  end if
+               end if
+               exit  ! Found the level, exit the k loop
+            end if
+         end do
+
+         ! If no valid data was found or result is NaN, use fill_value
+         if (.not. has_valid_data .or. isnan(field_out(i))) then
+            field_out(i) = fill_value
+         end if
+      end if
+   end do
+
+   end subroutine interp_to_height
+
+!#######################################################################
+
+   subroutine diff_across_height(ncol, ncold, nlevs, zmid, field_in, height_target, field_diff, fill_value)
+!
+!---------------------------------------------------------------
+!
+! Purpose:  Calculate the difference of a field across a specified height level
+!           Returns field_in(level_above) - field_in(level_below) where the
+!           target height falls between these levels.
+!
+! Algorithm: For each column, the routine:
+!            1. Finds the model levels that bracket the target height
+!            2. Calculates field difference: upper_level - lower_level
+!            3. Returns fill_value for edge cases or invalid heights
+!            4. Checks for NaN values in input data
+!
+! Notes:     - Used to calculate jumps in atmospheric variables (e.g., across PBLH)
+!            - Target height must lie between two model levels for valid result
+!            - Returns fill_value if target height is at domain boundaries
+!            - Positive values indicate field increases with height
+!            - NaN values in input data are replaced with fill_value
+!
+! Example:   For potential temperature jump across PBL height:
+!            THJUMPPBL = theta(above_PBLH) - theta(below_PBLH)
+!
+!---------------------------------------------------------------
+!
+! Arguments
+!
+   integer,  intent(in)  :: ncol                      ! number of columns
+   integer,  intent(in)  :: ncold                     ! declared column dimension
+   integer,  intent(in)  :: nlevs                     ! number of vertical levels
+   real(r8), intent(in)  :: zmid(ncold,nlevs)         ! height at model levels (m)
+   real(r8), intent(in)  :: field_in(ncold,nlevs)     ! input field on model levels
+   real(r8), intent(in)  :: height_target(ncold)      ! target heights (e.g., PBLH)
+   real(r8), intent(out) :: field_diff(ncold)         ! difference across target height
+   real(r8), intent(in)  :: fill_value                ! value to use when calculation fails
+!
+!---------------------------Local workspace-----------------------------
+!
+   integer :: i, k
+!
+!-----------------------------------------------------------------------
+!
+   ! Initialize output array to fill value
+   field_diff(:) = fill_value
+   
+   ! Calculate difference for each column
+   do i = 1, ncol
+      if (height_target(i) > 0._r8) then
+         ! Find the levels bracketing the target height
+         do k = nlevs, 1, -1
+            if (zmid(i,k) >= height_target(i)) then
+               if (k == nlevs) then
+                  ! Target height is below the lowest model level
+                  ! Cannot calculate a meaningful difference
+                  field_diff(i) = fill_value
+               else if (k == 1) then
+                  ! Target height is above the highest model level
+                  ! Cannot calculate a meaningful difference
+                  field_diff(i) = fill_value
+               else
+                  ! Target height is between levels k and k+1
+                  ! Calculate difference: upper_level - lower_level
+                  ! Note: k is the upper level (smaller index, higher in atmosphere)
+                  !       k+1 is the lower level (larger index, lower in atmosphere)
+                  ! Check for NaN in both input values
+                  if (.not. isnan(field_in(i,k)) .and. .not. isnan(field_in(i,k+1))) then
+                     field_diff(i) = field_in(i,k) - field_in(i,k+1)
+                  else
+                     field_diff(i) = fill_value
+                  end if
+               end if
+               exit  ! Found the level, exit the k loop
+            end if
+         end do
+
+         ! If result is NaN, use fill_value
+         if (isnan(field_diff(i))) then
+            field_diff(i) = fill_value
+         end if
+      end if
+   end do
+
+   end subroutine diff_across_height
 
 end module cam_diagnostics
