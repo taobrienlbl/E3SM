@@ -2052,7 +2052,7 @@
         </nthrds>
       </pes>
     </mach>
-    <mach name="improv">
+    <mach name="improv|BigRed200">
       <pes compset=".*EAM.+ELM.+MPASSI.+MPASO.+MOSART.+" pesize="any">
         <comment>--res northamericax4v1pg2_WC14to60E2r3 --compset WCYCL1850 </comment>
         <ntasks>

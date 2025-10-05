@@ -178,6 +178,7 @@ contains
     !
     ! !USES:
     use shr_infnan_mod , only : nan => shr_infnan_nan, assignment(=)
+    use elm_varcon     , only : spval
     !
     ! !ARGUMENTS:
     class(waterstate_type) :: this
@@ -197,103 +198,103 @@ contains
     begg = bounds%begg; endg= bounds%endg
 
     allocate(this%do_capsnow_col         (begc:endc))                   
-    allocate(this%snow_depth_col         (begc:endc))                     ; this%snow_depth_col         (:)   = nan
-    allocate(this%snow_persistence_col   (begc:endc))                     ; this%snow_persistence_col   (:)   = nan
-    allocate(this%snowdp_col             (begc:endc))                     ; this%snowdp_col             (:)   = nan
-    allocate(this%snowice_col            (begc:endc))                     ; this%snowice_col            (:)   = nan   
-    allocate(this%snowliq_col            (begc:endc))                     ; this%snowliq_col            (:)   = nan   
-    allocate(this%int_snow_col           (begc:endc))                     ; this%int_snow_col           (:)   = nan   
-    allocate(this%snow_layer_unity_col   (begc:endc,-nlevsno+1:0))        ; this%snow_layer_unity_col   (:,:) = nan
-    allocate(this%bw_col                 (begc:endc,-nlevsno+1:0))        ; this%bw_col                 (:,:) = nan   
-    allocate(this%smp_l_col              (begc:endc,-nlevsno+1:nlevgrnd)) ; this%smp_l_col              (:,:) = nan
-    allocate(this%finundated_col         (begc:endc))                     ; this%finundated_col         (:)   = nan
+    allocate(this%snow_depth_col         (begc:endc))                     ; this%snow_depth_col         (:)   = spval
+    allocate(this%snow_persistence_col   (begc:endc))                     ; this%snow_persistence_col   (:)   = spval
+    allocate(this%snowdp_col             (begc:endc))                     ; this%snowdp_col             (:)   = spval
+    allocate(this%snowice_col            (begc:endc))                     ; this%snowice_col            (:)   = spval   
+    allocate(this%snowliq_col            (begc:endc))                     ; this%snowliq_col            (:)   = spval   
+    allocate(this%int_snow_col           (begc:endc))                     ; this%int_snow_col           (:)   = spval   
+    allocate(this%snow_layer_unity_col   (begc:endc,-nlevsno+1:0))        ; this%snow_layer_unity_col   (:,:) = spval
+    allocate(this%bw_col                 (begc:endc,-nlevsno+1:0))        ; this%bw_col                 (:,:) = spval   
+    allocate(this%smp_l_col              (begc:endc,-nlevsno+1:nlevgrnd)) ; this%smp_l_col              (:,:) = spval
+    allocate(this%finundated_col         (begc:endc))                     ; this%finundated_col         (:)   = spval
 
-    allocate(this%h2osno_col             (begc:endc))                     ; this%h2osno_col             (:)   = nan   
-    allocate(this%h2osno_old_col         (begc:endc))                     ; this%h2osno_old_col         (:)   = nan   
-    allocate(this%h2osoi_liqice_10cm_col (begc:endc))                     ; this%h2osoi_liqice_10cm_col (:)   = nan
+    allocate(this%h2osno_col             (begc:endc))                     ; this%h2osno_col             (:)   = spval   
+    allocate(this%h2osno_old_col         (begc:endc))                     ; this%h2osno_old_col         (:)   = spval   
+    allocate(this%h2osoi_liqice_10cm_col (begc:endc))                     ; this%h2osoi_liqice_10cm_col (:)   = spval
     
-    allocate(this%h2osoi_vol_col         (begc:endc, 1:nlevgrnd))         ; this%h2osoi_vol_col         (:,:) = nan
-    allocate(this%air_vol_col            (begc:endc, 1:nlevgrnd))         ; this%air_vol_col            (:,:) = nan
-    allocate(this%h2osoi_liqvol_col      (begc:endc,-nlevsno+1:nlevgrnd)) ; this%h2osoi_liqvol_col      (:,:) = nan
-    allocate(this%h2osoi_icevol_col      (begc:endc,-nlevsno+1:nlevgrnd)) ; this%h2osoi_icevol_col      (:,:) = nan    
-    allocate(this%rho_vap_col            (begc:endc,-nlevsno+1:nlevgrnd)) ; this%rho_vap_col            (:,:) = nan
-    allocate(this%rhvap_soi_col          (begc:endc,-nlevsno+1:nlevgrnd)) ; this%rhvap_soi_col          (:,:) = nan
-    allocate(this%h2osoi_liq_old_col     (begc:endc,-nlevsno+1:nlevgrnd)) ; this%h2osoi_liq_old_col     (:,:) = nan
-    allocate(this%h2osoi_ice_old_col     (begc:endc,-nlevsno+1:nlevgrnd)) ; this%h2osoi_ice_old_col     (:,:) = nan 
-    allocate(this%h2osoi_ice_col         (begc:endc,-nlevsno+1:nlevgrnd)) ; this%h2osoi_ice_col         (:,:) = nan
-    allocate(this%h2osoi_liq_col         (begc:endc,-nlevsno+1:nlevgrnd)) ; this%h2osoi_liq_col         (:,:) = nan
-    allocate(this%h2ocan_patch           (begp:endp))                     ; this%h2ocan_patch           (:)   = nan  
-    allocate(this%h2ocan_col             (begc:endc))                     ; this%h2ocan_col             (:)   = nan  
-    allocate(this%h2osfc_col             (begc:endc))                     ; this%h2osfc_col             (:)   = nan   
-    allocate(this%swe_old_col            (begc:endc,-nlevsno+1:0))        ; this%swe_old_col            (:,:) = nan   
-    allocate(this%liq1_grc               (begg:endg))                     ; this%liq1_grc               (:)   = nan
-    allocate(this%liq2_grc               (begg:endg))                     ; this%liq2_grc               (:)   = nan
-    allocate(this%ice1_grc               (begg:endg))                     ; this%ice1_grc               (:)   = nan
-    allocate(this%ice2_grc               (begg:endg))                     ; this%ice2_grc               (:)   = nan
-    allocate(this%tws_grc                (begg:endg))                     ; this%tws_grc                (:)   = nan
-    allocate(this%tws_month_beg_grc      (begg:endg))                     ; this%tws_month_beg_grc      (:)   = nan
-    allocate(this%tws_month_end_grc      (begg:endg))                     ; this%tws_month_end_grc      (:)   = nan
+    allocate(this%h2osoi_vol_col         (begc:endc, 1:nlevgrnd))         ; this%h2osoi_vol_col         (:,:) = spval
+    allocate(this%air_vol_col            (begc:endc, 1:nlevgrnd))         ; this%air_vol_col            (:,:) = spval
+    allocate(this%h2osoi_liqvol_col      (begc:endc,-nlevsno+1:nlevgrnd)) ; this%h2osoi_liqvol_col      (:,:) = spval
+    allocate(this%h2osoi_icevol_col      (begc:endc,-nlevsno+1:nlevgrnd)) ; this%h2osoi_icevol_col      (:,:) = spval    
+    allocate(this%rho_vap_col            (begc:endc,-nlevsno+1:nlevgrnd)) ; this%rho_vap_col            (:,:) = spval
+    allocate(this%rhvap_soi_col          (begc:endc,-nlevsno+1:nlevgrnd)) ; this%rhvap_soi_col          (:,:) = spval
+    allocate(this%h2osoi_liq_old_col     (begc:endc,-nlevsno+1:nlevgrnd)) ; this%h2osoi_liq_old_col     (:,:) = spval
+    allocate(this%h2osoi_ice_old_col     (begc:endc,-nlevsno+1:nlevgrnd)) ; this%h2osoi_ice_old_col     (:,:) = spval 
+    allocate(this%h2osoi_ice_col         (begc:endc,-nlevsno+1:nlevgrnd)) ; this%h2osoi_ice_col         (:,:) = spval
+    allocate(this%h2osoi_liq_col         (begc:endc,-nlevsno+1:nlevgrnd)) ; this%h2osoi_liq_col         (:,:) = spval
+    allocate(this%h2ocan_patch           (begp:endp))                     ; this%h2ocan_patch           (:)   = spval  
+    allocate(this%h2ocan_col             (begc:endc))                     ; this%h2ocan_col             (:)   = spval  
+    allocate(this%h2osfc_col             (begc:endc))                     ; this%h2osfc_col             (:)   = spval   
+    allocate(this%swe_old_col            (begc:endc,-nlevsno+1:0))        ; this%swe_old_col            (:,:) = spval   
+    allocate(this%liq1_grc               (begg:endg))                     ; this%liq1_grc               (:)   = spval
+    allocate(this%liq2_grc               (begg:endg))                     ; this%liq2_grc               (:)   = spval
+    allocate(this%ice1_grc               (begg:endg))                     ; this%ice1_grc               (:)   = spval
+    allocate(this%ice2_grc               (begg:endg))                     ; this%ice2_grc               (:)   = spval
+    allocate(this%tws_grc                (begg:endg))                     ; this%tws_grc                (:)   = spval
+    allocate(this%tws_month_beg_grc      (begg:endg))                     ; this%tws_month_beg_grc      (:)   = spval
+    allocate(this%tws_month_end_grc      (begg:endg))                     ; this%tws_month_end_grc      (:)   = spval
 
-    allocate(this%total_plant_stored_h2o_col(begc:endc))                  ; this%total_plant_stored_h2o_col(:) = nan
+    allocate(this%total_plant_stored_h2o_col(begc:endc))                  ; this%total_plant_stored_h2o_col(:) = spval
 
-    allocate(this%snw_rds_col            (begc:endc,-nlevsno+1:0))        ; this%snw_rds_col            (:,:) = nan
-    allocate(this%snw_rds_top_col        (begc:endc))                     ; this%snw_rds_top_col        (:)   = nan
-    allocate(this%h2osno_top_col         (begc:endc))                     ; this%h2osno_top_col         (:)   = nan
-    allocate(this%sno_liq_top_col        (begc:endc))                     ; this%sno_liq_top_col        (:)   = nan
+    allocate(this%snw_rds_col            (begc:endc,-nlevsno+1:0))        ; this%snw_rds_col            (:,:) = spval
+    allocate(this%snw_rds_top_col        (begc:endc))                     ; this%snw_rds_top_col        (:)   = spval
+    allocate(this%h2osno_top_col         (begc:endc))                     ; this%h2osno_top_col         (:)   = spval
+    allocate(this%sno_liq_top_col        (begc:endc))                     ; this%sno_liq_top_col        (:)   = spval
 
-    allocate(this%qg_snow_col            (begc:endc))                     ; this%qg_snow_col            (:)   = nan   
-    allocate(this%qg_soil_col            (begc:endc))                     ; this%qg_soil_col            (:)   = nan   
-    allocate(this%qg_h2osfc_col          (begc:endc))                     ; this%qg_h2osfc_col          (:)   = nan   
-    allocate(this%qg_col                 (begc:endc))                     ; this%qg_col                 (:)   = nan   
-    allocate(this%dqgdT_col              (begc:endc))                     ; this%dqgdT_col              (:)   = nan   
-    allocate(this%qaf_lun                (begl:endl))                     ; this%qaf_lun                (:)   = nan
-    allocate(this%q_ref2m_patch          (begp:endp))                     ; this%q_ref2m_patch          (:)   = nan
-    allocate(this%rh_ref2m_patch         (begp:endp))                     ; this%rh_ref2m_patch         (:)   = nan
-    allocate(this%rh_ref2m_u_patch       (begp:endp))                     ; this%rh_ref2m_u_patch       (:)   = nan
-    allocate(this%rh_ref2m_r_patch       (begp:endp))                     ; this%rh_ref2m_r_patch       (:)   = nan
-    allocate(this%rh_af_patch            (begp:endp))                     ; this%rh_af_patch            (:)   = nan
+    allocate(this%qg_snow_col            (begc:endc))                     ; this%qg_snow_col            (:)   = spval   
+    allocate(this%qg_soil_col            (begc:endc))                     ; this%qg_soil_col            (:)   = spval   
+    allocate(this%qg_h2osfc_col          (begc:endc))                     ; this%qg_h2osfc_col          (:)   = spval   
+    allocate(this%qg_col                 (begc:endc))                     ; this%qg_col                 (:)   = spval   
+    allocate(this%dqgdT_col              (begc:endc))                     ; this%dqgdT_col              (:)   = spval   
+    allocate(this%qaf_lun                (begl:endl))                     ; this%qaf_lun                (:)   = spval
+    allocate(this%q_ref2m_patch          (begp:endp))                     ; this%q_ref2m_patch          (:)   = spval
+    allocate(this%rh_ref2m_patch         (begp:endp))                     ; this%rh_ref2m_patch         (:)   = spval
+    allocate(this%rh_ref2m_u_patch       (begp:endp))                     ; this%rh_ref2m_u_patch       (:)   = spval
+    allocate(this%rh_ref2m_r_patch       (begp:endp))                     ; this%rh_ref2m_r_patch       (:)   = spval
+    allocate(this%rh_af_patch            (begp:endp))                     ; this%rh_af_patch            (:)   = spval
 
-    allocate(this%frac_sno_col           (begc:endc))                     ; this%frac_sno_col           (:)   = nan
-    allocate(this%frac_sno_eff_col       (begc:endc))                     ; this%frac_sno_eff_col       (:)   = nan
-    allocate(this%frac_iceold_col        (begc:endc,-nlevsno+1:nlevgrnd)) ; this%frac_iceold_col        (:,:) = nan
-    allocate(this%frac_h2osfc_col        (begc:endc))                     ; this%frac_h2osfc_col        (:)   = nan 
-    allocate(this%wf_col                 (begc:endc))                     ; this%wf_col                 (:)   = nan
+    allocate(this%frac_sno_col           (begc:endc))                     ; this%frac_sno_col           (:)   = spval
+    allocate(this%frac_sno_eff_col       (begc:endc))                     ; this%frac_sno_eff_col       (:)   = spval
+    allocate(this%frac_iceold_col        (begc:endc,-nlevsno+1:nlevgrnd)) ; this%frac_iceold_col        (:,:) = spval
+    allocate(this%frac_h2osfc_col        (begc:endc))                     ; this%frac_h2osfc_col        (:)   = spval 
+    allocate(this%wf_col                 (begc:endc))                     ; this%wf_col                 (:)   = spval
     allocate(this%wf2_col                (begc:endc))                     ; 
-    allocate(this%fwet_patch             (begp:endp))                     ; this%fwet_patch             (:)   = nan
-    allocate(this%fdry_patch             (begp:endp))                     ; this%fdry_patch             (:)   = nan
+    allocate(this%fwet_patch             (begp:endp))                     ; this%fwet_patch             (:)   = spval
+    allocate(this%fdry_patch             (begp:endp))                     ; this%fdry_patch             (:)   = spval
 
-    allocate(this%begwb_patch            (begp:endp))                     ; this%begwb_patch            (:)   = nan
-    allocate(this%begwb_col              (begc:endc))                     ; this%begwb_col              (:)   = nan
-    allocate(this%begwb_grc              (begg:endg))                     ; this%begwb_grc              (:)   = nan
-    allocate(this%endwb_patch            (begp:endp))                     ; this%endwb_patch            (:)   = nan
-    allocate(this%endwb_col              (begc:endc))                     ; this%endwb_col              (:)   = nan
-    allocate(this%endwb_grc              (begg:endg))                     ; this%endwb_grc              (:)   = nan
-    allocate(this%errh2o_patch           (begp:endp))                     ; this%errh2o_patch           (:)   = nan
-    allocate(this%errh2o_col             (begc:endc))                     ; this%errh2o_col             (:)   = nan
-    allocate(this%errh2o_grc             (begg:endg))                     ; this%errh2o_grc             (:)   = nan
-    allocate(this%errh2osno_col          (begc:endc))                     ; this%errh2osno_col          (:)   = nan
+    allocate(this%begwb_patch            (begp:endp))                     ; this%begwb_patch            (:)   = spval
+    allocate(this%begwb_col              (begc:endc))                     ; this%begwb_col              (:)   = spval
+    allocate(this%begwb_grc              (begg:endg))                     ; this%begwb_grc              (:)   = spval
+    allocate(this%endwb_patch            (begp:endp))                     ; this%endwb_patch            (:)   = spval
+    allocate(this%endwb_col              (begc:endc))                     ; this%endwb_col              (:)   = spval
+    allocate(this%endwb_grc              (begg:endg))                     ; this%endwb_grc              (:)   = spval
+    allocate(this%errh2o_patch           (begp:endp))                     ; this%errh2o_patch           (:)   = spval
+    allocate(this%errh2o_col             (begc:endc))                     ; this%errh2o_col             (:)   = spval
+    allocate(this%errh2o_grc             (begg:endg))                     ; this%errh2o_grc             (:)   = spval
+    allocate(this%errh2osno_col          (begc:endc))                     ; this%errh2osno_col          (:)   = spval
 
-    allocate(this%h2osoi_liq_depth_intg_col(begc:endc))                   ; this%h2osoi_liq_depth_intg_col(:) = nan
-    allocate(this%h2osoi_ice_depth_intg_col(begc:endc))                   ; this%h2osoi_ice_depth_intg_col(:) = nan
+    allocate(this%h2osoi_liq_depth_intg_col(begc:endc))                   ; this%h2osoi_liq_depth_intg_col(:) = spval
+    allocate(this%h2osoi_ice_depth_intg_col(begc:endc))                   ; this%h2osoi_ice_depth_intg_col(:) = spval
 
-    allocate(this%beg_h2ocan_grc          (begg:endg))                    ; this%beg_h2ocan_grc         (:)   = nan
-    allocate(this%beg_h2osno_grc          (begg:endg))                    ; this%beg_h2osno_grc         (:)   = nan
-    allocate(this%beg_h2osfc_grc          (begg:endg))                    ; this%beg_h2osfc_grc         (:)   = nan
-    allocate(this%beg_h2osoi_liq_grc      (begg:endg))                    ; this%beg_h2osoi_liq_grc     (:)   = nan
-    allocate(this%beg_h2osoi_ice_grc      (begg:endg))                    ; this%beg_h2osoi_ice_grc     (:)   = nan
+    allocate(this%beg_h2ocan_grc          (begg:endg))                    ; this%beg_h2ocan_grc         (:)   = spval
+    allocate(this%beg_h2osno_grc          (begg:endg))                    ; this%beg_h2osno_grc         (:)   = spval
+    allocate(this%beg_h2osfc_grc          (begg:endg))                    ; this%beg_h2osfc_grc         (:)   = spval
+    allocate(this%beg_h2osoi_liq_grc      (begg:endg))                    ; this%beg_h2osoi_liq_grc     (:)   = spval
+    allocate(this%beg_h2osoi_ice_grc      (begg:endg))                    ; this%beg_h2osoi_ice_grc     (:)   = spval
 
-    allocate(this%end_h2ocan_grc          (begg:endg))                    ; this%end_h2ocan_grc         (:)   = nan
-    allocate(this%end_h2osno_grc          (begg:endg))                    ; this%end_h2osno_grc         (:)   = nan
-    allocate(this%end_h2osfc_grc          (begg:endg))                    ; this%end_h2osfc_grc         (:)   = nan
-    allocate(this%end_h2osoi_liq_grc      (begg:endg))                    ; this%end_h2osoi_liq_grc     (:)   = nan
-    allocate(this%end_h2osoi_ice_grc      (begg:endg))                    ; this%end_h2osoi_ice_grc     (:)   = nan
+    allocate(this%end_h2ocan_grc          (begg:endg))                    ; this%end_h2ocan_grc         (:)   = spval
+    allocate(this%end_h2osno_grc          (begg:endg))                    ; this%end_h2osno_grc         (:)   = spval
+    allocate(this%end_h2osfc_grc          (begg:endg))                    ; this%end_h2osfc_grc         (:)   = spval
+    allocate(this%end_h2osoi_liq_grc      (begg:endg))                    ; this%end_h2osoi_liq_grc     (:)   = spval
+    allocate(this%end_h2osoi_ice_grc      (begg:endg))                    ; this%end_h2osoi_ice_grc     (:)   = spval
 
     ncells = (endc - begc + 1)*nlevgrnd
-    allocate(this%vsfm_fliq_col_1d(          ncells))                     ; this%vsfm_fliq_col_1d       (:)   = nan
-    allocate(this%vsfm_sat_col_1d(           ncells))                     ; this%vsfm_sat_col_1d        (:)   = nan
-    allocate(this%vsfm_mass_col_1d(          ncells))                     ; this%vsfm_mass_col_1d       (:)   = nan
-    allocate(this%vsfm_smpl_col_1d(          ncells))                     ; this%vsfm_smpl_col_1d       (:)   = nan
-    allocate(this%vsfm_soilp_col_1d(         ncells))                     ; this%vsfm_soilp_col_1d      (:)   = nan
+    allocate(this%vsfm_fliq_col_1d(          ncells))                     ; this%vsfm_fliq_col_1d       (:)   = spval
+    allocate(this%vsfm_sat_col_1d(           ncells))                     ; this%vsfm_sat_col_1d        (:)   = spval
+    allocate(this%vsfm_mass_col_1d(          ncells))                     ; this%vsfm_mass_col_1d       (:)   = spval
+    allocate(this%vsfm_smpl_col_1d(          ncells))                     ; this%vsfm_smpl_col_1d       (:)   = spval
+    allocate(this%vsfm_soilp_col_1d(         ncells))                     ; this%vsfm_soilp_col_1d      (:)   = spval
     allocate(this%soilp_col              (begc:endc,1:nlevgrnd))          ; this%soilp_col              (:,:) = 0._r8
 
   end subroutine InitAllocate
