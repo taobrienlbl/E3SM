@@ -1555,10 +1555,8 @@ end subroutine diag_conv_tend_ini
       end if
 
       if (hist_fld_active('QCTOP')) then
-         ! Get constituent index for water vapor (specific humidity) if not already obtained
-         if (.not. (hist_fld_active('QJUMPCTOP'))) then
-            call cnst_get_ind('Q', ixq)
-         end if
+         ! Get constituent index for water vapor (specific humidity)
+          call cnst_get_ind('Q', ixq)
          call interp_to_height(ncol, pcols, pver, state%zm, state%q(:,:,ixq), ctop_height, ctop_output, 1e30_r8)
          call outfld('QCTOP', ctop_output, pcols, lchnk)
       end if
@@ -1589,18 +1587,6 @@ end subroutine diag_conv_tend_ini
          ! Get constituent index for water vapor (specific humidity)
          call cnst_get_ind('Q', ixq)
          call diff_across_height(ncol, pcols, pver, state%zm, state%q(:,:,ixq), ctop_height, ctop_output, 1e30_r8)
-         ! Validate output range to prevent NetCDF conversion errors
-         do i = 1, ncol
-            if (ctop_output(i) /= 1e30_r8) then
-               ! Clamp humidity jump to reasonable range (-1 to 1 kg/kg)
-               if (ctop_output(i) > 1.0_r8) ctop_output(i) = 1.0_r8
-               if (ctop_output(i) < -1.0_r8) ctop_output(i) = -1.0_r8
-               ! Check for any remaining problematic values
-               if (isnan(ctop_output(i)) .or. abs(ctop_output(i)) > 10.0_r8) then
-                  ctop_output(i) = 1e30_r8
-               end if
-            end if
-         end do
          call outfld('QJUMPCTOP', ctop_output, pcols, lchnk)
       end if
 
